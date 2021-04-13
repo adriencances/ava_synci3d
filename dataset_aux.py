@@ -9,6 +9,7 @@ import sys
 import pickle
 import tqdm
 import glob
+import os
 
 
 class FrameProcessor:
@@ -69,6 +70,7 @@ class FrameProcessor:
         # t : timestamp index of the video
         # n : frame index in the timestamp (frame indices start at 1)
         frame_file = "{}/{}/{}/{:05d}/{:06d}.jpg".format(self.frames_dir, self.phase, video_id, t, n)
+        assert os.path.isfile(frame_file), frame_file
         # frame : H * W * 3
         frame = cv2.imread(frame_file)
         # frame : 3 * W * H
@@ -123,7 +125,6 @@ class FrameProcessor:
         i = m.floor((self.w - w_tild)/2)
         j = m.floor((self.h - h_tild)/2)
         new_frame[:, i:i+w_tild, j:j+h_tild] = resized_boxed_frame
-
         return new_frame
 
     def track(self, video_id, shot_id, track_id):
@@ -152,5 +153,5 @@ class FrameProcessor:
             box = self.enlarged_box(box)
             processed_frame = self.processed_frame(frame, box)
             processed_frames.append(processed_frame)
-        processed_frames = torch.stack(processed_frames, dim=0)
+        processed_frames = torch.stack(processed_frames, dim=1)
         return processed_frames

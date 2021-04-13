@@ -20,7 +20,7 @@ class AvaPairs(data.Dataset):
         self.alpha = 0.1
 
         self.phase = "train"
-        self.frames_dir = "/media/hdd/adrien/Ava_v2.2/frames"
+        self.frames_dir = "/media/hdd/adrien/Ava_v2.2/correct_frames"
         self.shots_dir = "/home/acances/Data/Ava_v2.2/final_shots"
         self.tracks_dir = "/home/acances/Data/Ava_v2.2/tracks"
         self.pairs_dir = "/home/acances/Data/Ava_v2.2/pairs"
@@ -64,7 +64,7 @@ class AvaPairs(data.Dataset):
         tensor1 = self.frame_processor.processed_frames(video_id1, shot_id1, track_id1, begin1, end1)
         tensor2 = self.frame_processor.processed_frames(video_id2, shot_id2, track_id2, begin2, end2)
         
-        return tensor1, tensor2, True
+        return tensor1, tensor2, 1
 
     def __len__(self):
         """Denotes the total number of samples"""
@@ -72,9 +72,9 @@ class AvaPairs(data.Dataset):
 
 
 if __name__ == "__main__":
-    data = AvaPairs("val")
-    print(len(data))
-    tensor1, tensor2 = data[0]
+    dataset = AvaPairs("val")
+    print(len(dataset))
+    tensor1, tensor2, label = dataset[0]
     print(tensor1.shape)
     print(tensor2.shape)
 

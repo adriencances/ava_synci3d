@@ -13,9 +13,6 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.autograd import Variable
 
-from dataset_aux import FrameProcessor
-from dataset import AvaPairs
-
 
 def train_epoch(train_loader, model, epoch, loss_fn, optimizer, lr_sched, cuda, log_interval, metric):
     model.train()
@@ -24,7 +21,7 @@ def train_epoch(train_loader, model, epoch, loss_fn, optimizer, lr_sched, cuda, 
     total_loss = 0 
     total_acc = []
 
-    for batch_idx, (segment1, segment2, target) in enumerate(train_loader):
+    for batch_id, (segment1, segment2, target) in enumerate(tqdm.tqdm(train_loader)):
         # Pass inputs to GPU
         segment1 = segment1.cuda()
         segment2 = segment2.cuda()
@@ -33,11 +30,11 @@ def train_epoch(train_loader, model, epoch, loss_fn, optimizer, lr_sched, cuda, 
         features1, features2 = model(segment1, segment2) # shape : bx1024
 
         # Normalize each feature vector (separately)
-        features1_norm = F.normalize(v1, p=2, dim=1)
-        features2_norm = F.normalize(v2, p=2, dim=1)
+        features1_norm = F.normalize(features1, p=2, dim=1)
+        features2_norm = F.normalize(features2, p=2, dim=1)
 
         # Compute loss
-        loss, sigm = loss_fn(v1_norm, v2_norm, target.cuda())
+        loss, sigm = loss_fn(features1_norm, features2_norm, target.cuda())
         total_loss += loss.item()
 
         # Update weights
