@@ -64,7 +64,7 @@ class AvaPairs(data.Dataset):
         tensor1 = self.frame_processor.processed_frames(video_id1, shot_id1, track_id1, begin1, end1)
         tensor2 = self.frame_processor.processed_frames(video_id2, shot_id2, track_id2, begin2, end2)
         
-        return tensor1, tensor2
+        return tensor1, tensor2, True
 
     def __len__(self):
         """Denotes the total number of samples"""

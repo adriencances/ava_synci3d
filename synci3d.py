@@ -33,6 +33,6 @@ if __name__ == "__main__":
     input2 = torch.rand(1, 3, 16, 224, 224)
 
     output1, output2 = model(input1, input2)
-    print(output1)
-    print(output2)
+    print(output1.shape)
+    print(output2.shape)
 
