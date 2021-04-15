@@ -457,25 +457,25 @@ class InceptionI3d(nn.Module):
 
 
 if __name__ == "__main__":
-    model = InceptionI3d(dropout_keep_prob=0)
+    model = InceptionI3d(dropout_keep_prob=0, num_in_frames=64)
     
     params_file = sys.argv[1]
     model.load_state_dict(torch.load(params_file))
 
-    # inp = torch.rand(1, 3, 16, 224, 224)
-    inp_array = np.load("inp.npy")
-    inp = torch.from_numpy(inp_array)
+    inp = torch.rand(1, 3, 64, 224, 224)
 
     features = model.extract_features(inp)
+    print(features.shape)
     features = torch.flatten(features, start_dim=1)
-    print(features[0][:5])
+    print(features.shape)
+    # print(features[0][:5])
 
-    probs = model.extract_probabilities(inp)
-    print(probs[0][:5])
+    # probs = model.extract_probabilities(inp)
+    # print(probs[0][:5])
 
-    logits = model(inp)
-    predictions = F.softmax(logits, dim=1)
-    print(predictions[0][:5])
+    # logits = model(inp)
+    # predictions = F.softmax(logits, dim=1)
+    # print(predictions[0][:5])
 
     # print(inp.shape)
     # print(features.shape)

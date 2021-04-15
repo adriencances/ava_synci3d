@@ -5,6 +5,8 @@ import cv2
 import glob
 import tqdm
 
+from random import shuffle
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -28,28 +30,67 @@ class AvaPairs(data.Dataset):
         self.frame_processor = FrameProcessor(self.w, self.h, self.alpha, self.phase, self.frames_dir, self.shots_dir, self.tracks_dir)
 
         self.gather_positive_pairs()
+        self.gather_negative_pairs()
+        self.create_data()
 
-
-
-        # #videos
-        # self.all_videos = tvhid_splits(phase=phase)
-        # self.n_videos = len(self.all_videos)
-        # self.create(10) # intialise positive and negative candidates with temporal shift and stride
-        # self.key_2_idx_pos = {i:k for i,k in enumerate(self.positives.keys())}
-        # self.key_2_idx_neg = {i:k for i,k in enumerate(self.negatives.keys())}
-        # self.create_total()
-        # self.key_2_idx = {i:k for i,k in enumerate(self.total.keys())} #to ease data retrieval
-        # self.key_list = [k for k in self.total.keys()] #useful for label checking
-    
     def gather_positive_pairs(self):
         print("Gathering positive pairs")
         self.positive_pairs = []
-        positive_pairs_files = glob.glob("{}/{}/positive/*".format(self.pairs_dir, self.phase))
-        for file in tqdm.tqdm(positive_pairs_files):
+        pairs_files = glob.glob("{}/{}/positive/*".format(self.pairs_dir, self.phase))
+        for file in tqdm.tqdm(pairs_files):
             with open(file, "r") as f:
                 for line in f:
                     pair = line.strip().split(",")
                     self.positive_pairs.append(pair)
+    
+    def gather_negative_pairs(self):
+        nb_positives = len(self.positive_pairs)
+
+        nb_hard_negatives = 2*nb_positives
+        nb_medium_negatives = nb_positives // 2
+        nb_easy_negatives = nb_positives // 2
+
+        print("Gathering negative pairs")
+
+        # Hard negatives
+        self.hard_negative_pairs = []
+        pairs_files = glob.glob("{}/{}/hard_negative/*".format(self.pairs_dir, self.phase))
+        for file in tqdm.tqdm(pairs_files):
+            with open(file, "r") as f:
+                for line in f:
+                    pair = line.strip().split(",")
+                    self.hard_negative_pairs.append(pair)
+        # Medium negatives
+        self.medium_negative_pairs = []
+        pairs_files = glob.glob("{}/{}/medium_negative/*".format(self.pairs_dir, self.phase))
+        for file in tqdm.tqdm(pairs_files):
+            with open(file, "r") as f:
+                for line in f:
+                    pair = line.strip().split(",")
+                    self.medium_negative_pairs.append(pair)
+        # Easy negatives
+        self.easy_negative_pairs = []
+        pairs_files = glob.glob("{}/{}/easy_negative/*".format(self.pairs_dir, self.phase))
+        for file in tqdm.tqdm(pairs_files):
+            with open(file, "r") as f:
+                for line in f:
+                    pair = line.strip().split(",")
+                    self.easy_negative_pairs.append(pair)
+
+        # Suffle and sample in the right proportion
+        shuffle(self.hard_negative_pairs)
+        shuffle(self.medium_negative_pairs)
+        shuffle(self.easy_negative_pairs)
+
+        self.negative_pairs = []
+        self.negative_pairs += self.hard_negative_pairs[:nb_hard_negatives]
+        self.negative_pairs += self.medium_negative_pairs[:nb_medium_negatives]
+        self.negative_pairs += self.easy_negative_pairs[:nb_easy_negatives]
+    
+    def create_data(self):
+        # Concatenate positive and negative pairs, and shuffle
+        self.data = self.positive_pairs + self.negative_pairs
+        shuffle(self.data)
 
     def __getitem__(self, index):
         "Generates one sample of data"
@@ -68,14 +109,14 @@ class AvaPairs(data.Dataset):
 
     def __len__(self):
         """Denotes the total number of samples"""
-        return len(self.positive_pairs)
+        return len(self.data)
 
 
 if __name__ == "__main__":
-    dataset = AvaPairs("val")
-    print(len(dataset))
-    tensor1, tensor2, label = dataset[0]
-    print(tensor1.shape)
-    print(tensor2.shape)
+    dataset = AvaPairs("train")
+    # print(len(dataset))
+    # tensor1, tensor2, label = dataset[0]
+    # print(tensor1.shape)
+    # print(tensor2.shape)
 
 

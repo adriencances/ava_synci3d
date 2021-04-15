@@ -18,7 +18,7 @@ def train_epoch(train_loader, model, epoch, loss_fn, optimizer, lr_sched, cuda, 
     model.train()
 
     nb_batches = 0
-    total_loss = 0 
+    total_loss = 0
     total_acc = []
 
     for batch_id, (segment1, segment2, target) in enumerate(tqdm.tqdm(train_loader)):
