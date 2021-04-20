@@ -41,7 +41,7 @@ class AvaPairs(data.Dataset):
             with open(file, "r") as f:
                 for line in f:
                     pair = line.strip().split(",")
-                    self.positive_pairs.append(pair)
+                    self.positive_pairs.append(pair + [1])
     
     def gather_negative_pairs(self):
         nb_positives = len(self.positive_pairs)
@@ -59,7 +59,7 @@ class AvaPairs(data.Dataset):
             with open(file, "r") as f:
                 for line in f:
                     pair = line.strip().split(",")
-                    self.hard_negative_pairs.append(pair)
+                    self.hard_negative_pairs.append(pair + [0])
         # Medium negatives
         self.medium_negative_pairs = []
         pairs_files = glob.glob("{}/{}/medium_negative/*".format(self.pairs_dir, self.phase))
@@ -67,7 +67,7 @@ class AvaPairs(data.Dataset):
             with open(file, "r") as f:
                 for line in f:
                     pair = line.strip().split(",")
-                    self.medium_negative_pairs.append(pair)
+                    self.medium_negative_pairs.append(pair + [0])
         # Easy negatives
         self.easy_negative_pairs = []
         pairs_files = glob.glob("{}/{}/easy_negative/*".format(self.pairs_dir, self.phase))
@@ -75,7 +75,7 @@ class AvaPairs(data.Dataset):
             with open(file, "r") as f:
                 for line in f:
                     pair = line.strip().split(",")
-                    self.easy_negative_pairs.append(pair)
+                    self.easy_negative_pairs.append(pair + [0])
 
         # Suffle and sample in the right proportion
         shuffle(self.hard_negative_pairs)
@@ -94,10 +94,10 @@ class AvaPairs(data.Dataset):
 
     def __getitem__(self, index):
         "Generates one sample of data"
-        nb_pairs = len(self.positive_pairs)
+        nb_pairs = len(self.data)
         assert index < nb_pairs
-        pair = self.positive_pairs[index]
-        video_id1, shot_id1, i1, begin1, end1, video_id2, shot_id2, i2, begin2, end2 = pair
+        pair = self.data[index]
+        video_id1, shot_id1, i1, begin1, end1, video_id2, shot_id2, i2, begin2, end2, label = pair
         shot_id1, track_id1, begin1, end1 = list(map(int, [shot_id1, i1, begin1, end1]))
         shot_id2, track_id2, begin2, end2 = list(map(int, [shot_id2, i2, begin2, end2]))
         assert end1 - begin1 == end2 - begin2
@@ -105,7 +105,7 @@ class AvaPairs(data.Dataset):
         tensor1 = self.frame_processor.processed_frames(video_id1, shot_id1, track_id1, begin1, end1)
         tensor2 = self.frame_processor.processed_frames(video_id2, shot_id2, track_id2, begin2, end2)
         
-        return tensor1, tensor2, 1
+        return tensor1, tensor2, label
 
     def __len__(self):
         """Denotes the total number of samples"""

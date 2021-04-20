@@ -13,37 +13,54 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.autograd import Variable
 
+import torch.distributed as dist
+import torch.multiprocessing as mp
+from torch.nn.parallel import DistributedDataParallel as DDP
+
 from dataset_aux import FrameProcessor
 from dataset import AvaPairs
 from synci3d import SyncI3d
-from train import train_epoch
+from train import train
 from contrastive_loss import ContrastiveLoss
 
-
-def BinaryClassificationAccuracy(y_prob, y_true):
-    y_prob = y_prob.cuda()
-    y_true = y_true.cuda()
-    assert y_true.ndim == 1 and y_true.size() == y_prob.size()
-    y_prob = y_prob > 0.5
-    return (y_true == y_prob).sum().item() / y_true.size(0)
+import time
 
 
-def main():
-    dataset = AvaPairs("train")
-    dataloader_train = data.DataLoader(dataset, batch_size= 10, shuffle=True)
+def main(epochs, batch_size):
+    train(epochs, batch_size)
 
-    model = SyncI3d()
-    model.cuda()
+    # dataset = AvaPairs("train")
+    # dataloader_train = data.DataLoader(dataset, batch_size= 3, shuffle=True, num_workers=8)
 
-    loss_fn = ContrastiveLoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, weight_decay=0.000001)
-    lr_sched = optim.lr_scheduler.StepLR(optimizer, 10)
+    # model = SyncI3d()
+    # model.cuda()
 
-    cuda = torch.cuda.is_available()
+    # loss_fn = ContrastiveLoss()
+    # optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, weight_decay=0.000001)
+    # lr_sched = optim.lr_scheduler.StepLR(optimizer, 10)
 
-    train_epoch(dataloader_train, model, 0, loss_fn, optimizer, lr_sched, cuda, log_interval=0, metric=BinaryClassificationAccuracy)
+    # cuda = torch.cuda.is_available()
+
+    # train_epoch(dataloader_train, model, 0, loss_fn, optimizer, lr_sched, cuda, log_interval=0, metric=BinaryClassificationAccuracy)
 
 
 if __name__ == "__main__":
-    main()
+    main(epochs=1, batch_size=4)
 
+    # dataset = AvaPairs("train")
+
+    # train_loader = torch.utils.data.DataLoader(
+    #     dataset=dataset,
+    #     batch_size=4,
+    #     shuffle=False,
+    #     num_workers=0,
+    #     pin_memory=True
+    # )
+
+    # print("Starting loop")
+    # start = time.time()
+    # for batch in tqdm.tqdm(train_loader):
+    #     continue
+    # end = time.time()
+
+    # print(end - begin)

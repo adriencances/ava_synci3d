@@ -15,8 +15,8 @@ class ContrastiveLoss(nn.Module):
 
     def forward(self, x1, x2, target, size_average=True):
         dist = F.pairwise_distance(x1, x2)
-        loss = 0.5*torch.mean((1-target) * torch.pow(dist, 2) + 
-                           ((target)) * torch.pow(torch.clamp(self.margin - dist, min=0.0), 2))
+        loss = 0.5*torch.mean(target * torch.pow(dist, 2) + 
+                           ((1-target)) * torch.pow(torch.clamp(self.margin - dist, min=0.0), 2))
         sigmoid = torch.nn.Sigmoid()
         sigm = sigmoid(dist)
         return loss, sigm
