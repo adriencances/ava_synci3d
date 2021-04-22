@@ -10,7 +10,7 @@ from i3d import InceptionI3d
 class SyncI3d(nn.Module):
     def __init__(self, num_in_frames=64):
         super(SyncI3d, self).__init__()
-        self.params_file = "/home/adrien/Code/human_interaction_SyncI3d/params/rgb_imagenet.pt"
+        self.params_file = "/home/acances/Code/human_interaction_SyncI3d/params/rgb_imagenet.pt"
          
         self.i3d_net_1 = InceptionI3d(num_in_frames=num_in_frames)
         self.i3d_net_1.load_state_dict(torch.load(self.params_file))
