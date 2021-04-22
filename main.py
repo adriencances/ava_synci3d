@@ -26,8 +26,8 @@ from contrastive_loss import ContrastiveLoss
 import time
 
 
-def main(epochs, batch_size):
-    train(epochs, batch_size)
+def main(epochs, batch_size, lr):
+    train(epochs=epochs, batch_size=batch_size, lr=lr)
 
     # dataset = AvaPairs("train")
     # dataloader_train = data.DataLoader(dataset, batch_size= 3, shuffle=True, num_workers=8)
@@ -45,7 +45,11 @@ def main(epochs, batch_size):
 
 
 if __name__ == "__main__":
-    main(epochs=1, batch_size=4)
+    epochs = int(sys.argv[1])
+    lr = float(sys.argv[2])
+    print("Nb epochs : {}".format(epochs))
+    print("Learning rate : {}".format(lr))
+    main(epochs=epochs, batch_size=16, lr=lr)
 
     # dataset = AvaPairs("train")
 

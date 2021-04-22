@@ -4,6 +4,7 @@ import numpy as np
 import cv2
 import glob
 import tqdm
+import pickle
 
 from random import shuffle
 
@@ -16,19 +17,20 @@ from dataset_aux import FrameProcessor
 
 
 class AvaPairs(data.Dataset):
-    def __init__(self, phase="train"):
+    def __init__(self, phase="train", nb_positives=None):
         self.w = 224
         self.h = 224
         self.alpha = 0.1
 
-        self.phase = "train"
-        self.frames_dir = "/media/hdd/adrien/Ava_v2.2/correct_frames"
-        self.shots_dir = "/home/acances/Data/Ava_v2.2/final_shots"
-        self.tracks_dir = "/home/acances/Data/Ava_v2.2/tracks"
-        self.pairs_dir = "/home/acances/Data/Ava_v2.2/pairs"
+        self.phase = phase
+        self.frames_dir = "/home/adrien/Data/Ava_v2.2/correct_frames"
+        self.shots_dir = "/home/adrien/Data/Ava_v2.2/final_shots"
+        self.tracks_dir = "/home/adrien/Data/Ava_v2.2/tracks"
+        self.pairs_dir = "/home/adrien/Data/Ava_v2.2/pairs16"
 
         self.frame_processor = FrameProcessor(self.w, self.h, self.alpha, self.phase, self.frames_dir, self.shots_dir, self.tracks_dir)
 
+        self.nb_positives = nb_positives
         self.gather_positive_pairs()
         self.gather_negative_pairs()
         self.create_data()
@@ -42,13 +44,16 @@ class AvaPairs(data.Dataset):
                 for line in f:
                     pair = line.strip().split(",")
                     self.positive_pairs.append(pair + [1])
+        shuffle(self.positive_pairs)
+        
+        if self.nb_positives == None:
+            self.nb_positives = len(self.positive_pairs)
+        self.positive_pairs = self.positive_pairs[:self.nb_positives]
     
     def gather_negative_pairs(self):
-        nb_positives = len(self.positive_pairs)
-
-        nb_hard_negatives = 2*nb_positives
-        nb_medium_negatives = nb_positives // 2
-        nb_easy_negatives = nb_positives // 2
+        nb_hard_negatives = 2*self.nb_positives
+        nb_medium_negatives = self.nb_positives // 2
+        nb_easy_negatives = self.nb_positives // 2
 
         print("Gathering negative pairs")
 
@@ -104,6 +109,9 @@ class AvaPairs(data.Dataset):
 
         tensor1 = self.frame_processor.processed_frames(video_id1, shot_id1, track_id1, begin1, end1)
         tensor2 = self.frame_processor.processed_frames(video_id2, shot_id2, track_id2, begin2, end2)
+
+        # with open("pairs_tensors/pair_0.pkl", "rb") as f:
+        #     tensor1, tensor2, label = pickle.load(f)
         
         return tensor1, tensor2, label
 
