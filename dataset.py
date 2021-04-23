@@ -57,6 +57,9 @@ class AvaPairs(data.Dataset):
 
         print("Gathering negative pairs")
 
+        # For each category (hard, medium, easy), we gather all the corresponding pairs,
+        # shuffle them, and keep only the number we need
+
         # Hard negatives
         self.hard_negative_pairs = []
         pairs_files = glob.glob("{}/{}/hard_negative/*".format(self.pairs_dir, self.phase))
@@ -65,6 +68,8 @@ class AvaPairs(data.Dataset):
                 for line in f:
                     pair = line.strip().split(",")
                     self.hard_negative_pairs.append(pair + [0])
+        shuffle(self.hard_negative_pairs)
+        self.hard_negative_pairs = self.hard_negative_pairs[:nb_hard_negatives]
         # Medium negatives
         self.medium_negative_pairs = []
         pairs_files = glob.glob("{}/{}/medium_negative/*".format(self.pairs_dir, self.phase))
@@ -73,6 +78,8 @@ class AvaPairs(data.Dataset):
                 for line in f:
                     pair = line.strip().split(",")
                     self.medium_negative_pairs.append(pair + [0])
+        shuffle(self.medium_negative_pairs)
+        self.medium_negative_pairs = self.medium_negative_pairs[:nb_medium_negatives]
         # Easy negatives
         self.easy_negative_pairs = []
         pairs_files = glob.glob("{}/{}/easy_negative/*".format(self.pairs_dir, self.phase))
@@ -81,16 +88,13 @@ class AvaPairs(data.Dataset):
                 for line in f:
                     pair = line.strip().split(",")
                     self.easy_negative_pairs.append(pair + [0])
-
-        # Suffle and sample in the right proportion
-        shuffle(self.hard_negative_pairs)
-        shuffle(self.medium_negative_pairs)
         shuffle(self.easy_negative_pairs)
+        self.easy_negative_pairs = self.easy_negative_pairs[:nb_easy_negatives]
 
         self.negative_pairs = []
-        self.negative_pairs += self.hard_negative_pairs[:nb_hard_negatives]
-        self.negative_pairs += self.medium_negative_pairs[:nb_medium_negatives]
-        self.negative_pairs += self.easy_negative_pairs[:nb_easy_negatives]
+        self.negative_pairs += self.hard_negative_pairs
+        self.negative_pairs += self.medium_negative_pairs
+        self.negative_pairs += self.easy_negative_pairs
     
     def create_data(self):
         # Concatenate positive and negative pairs, and shuffle
