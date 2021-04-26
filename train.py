@@ -136,7 +136,7 @@ def train_model(epochs, train_data_size, batch_size, lr=0.01, margin=1.5, thresh
 
     if record:
         # Tensorboard writer
-        writer = SummaryWriter("essai/run_size{}_1".format(train_data_size))
+        writer = SummaryWriter("runs/run_size{}_1".format(train_data_size))
 
     # Model
     model = SyncI3d(num_in_frames=16)
@@ -211,7 +211,7 @@ def train_model(epochs, train_data_size, batch_size, lr=0.01, margin=1.5, thresh
             writer.add_histogram("val_distances", np.array(val_distances), global_step=epoch)
 
         # Save checkpoint
-        if True:
+        if epoch%10 == 9:
             state = {
                 'epoch': epoch,
                 'model': model.state_dict(),
@@ -238,6 +238,8 @@ def train_model(epochs, train_data_size, batch_size, lr=0.01, margin=1.5, thresh
 if __name__ == "__main__":
     epochs = int(sys.argv[1])
     lr = float(sys.argv[2])
+    train_data_size = int(sys.argv[3])
     print("Nb epochs : {}".format(epochs))
     print("Learning rate : {}".format(lr))
-    train_model(epochs=epochs, train_data_size=100, batch_size=8, lr=lr, record=False)
+    print("Train data size {}".format(train_data_size))
+    train_model(epochs=epochs, train_data_size=train_data_size, batch_size=8, lr=lr, record=True)
