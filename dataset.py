@@ -6,7 +6,7 @@ import glob
 import tqdm
 import pickle
 
-from random import shuffle
+import random
 
 import torch
 import torch.nn as nn
@@ -17,7 +17,7 @@ from dataset_aux import FrameProcessor
 
 
 class AvaPairs(data.Dataset):
-    def __init__(self, phase="train", nb_positives=None):
+    def __init__(self, phase="train", nb_positives=None, seed=0):
         self.w = 224
         self.h = 224
         self.alpha = 0.1
@@ -30,6 +30,7 @@ class AvaPairs(data.Dataset):
 
         self.frame_processor = FrameProcessor(self.w, self.h, self.alpha, self.phase, self.frames_dir, self.shots_dir, self.tracks_dir)
 
+        random.seed(seed)
         self.nb_positives = nb_positives
         self.gather_positive_pairs()
         self.gather_negative_pairs()
@@ -44,7 +45,7 @@ class AvaPairs(data.Dataset):
                 for line in f:
                     pair = line.strip().split(",")
                     self.positive_pairs.append(pair + [1])
-        shuffle(self.positive_pairs)
+        random.shuffle(self.positive_pairs)
         
         if self.nb_positives == None:
             self.nb_positives = len(self.positive_pairs)
@@ -68,7 +69,7 @@ class AvaPairs(data.Dataset):
                 for line in f:
                     pair = line.strip().split(",")
                     self.hard_negative_pairs.append(pair + [0])
-        shuffle(self.hard_negative_pairs)
+        random.shuffle(self.hard_negative_pairs)
         self.hard_negative_pairs = self.hard_negative_pairs[:nb_hard_negatives]
         # Medium negatives
         self.medium_negative_pairs = []
@@ -78,7 +79,7 @@ class AvaPairs(data.Dataset):
                 for line in f:
                     pair = line.strip().split(",")
                     self.medium_negative_pairs.append(pair + [0])
-        shuffle(self.medium_negative_pairs)
+        random.shuffle(self.medium_negative_pairs)
         self.medium_negative_pairs = self.medium_negative_pairs[:nb_medium_negatives]
         # Easy negatives
         self.easy_negative_pairs = []
@@ -88,7 +89,7 @@ class AvaPairs(data.Dataset):
                 for line in f:
                     pair = line.strip().split(",")
                     self.easy_negative_pairs.append(pair + [0])
-        shuffle(self.easy_negative_pairs)
+        random.shuffle(self.easy_negative_pairs)
         self.easy_negative_pairs = self.easy_negative_pairs[:nb_easy_negatives]
 
         self.negative_pairs = []
@@ -99,7 +100,7 @@ class AvaPairs(data.Dataset):
     def create_data(self):
         # Concatenate positive and negative pairs, and shuffle
         self.data = self.positive_pairs + self.negative_pairs
-        shuffle(self.data)
+        random.shuffle(self.data)
 
     def __getitem__(self, index):
         "Generates one sample of data"

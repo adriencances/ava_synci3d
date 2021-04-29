@@ -49,23 +49,23 @@ def train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn)
         segment2 = segment2.cuda()
         target = target.cuda()
 
-        # Pass inputs to the model
-        features1, features2 = model(segment1, segment2) # shape : bx1024
+        # # Pass inputs to the model
+        # features1, features2 = model(segment1, segment2) # shape : bx1024
 
-        # Normalize each feature vector (separately)
-        features1_norm = F.normalize(features1, p=2, dim=1)
-        features2_norm = F.normalize(features2, p=2, dim=1)
+        # # Normalize each feature vector (separately)
+        # features1_norm = F.normalize(features1, p=2, dim=1)
+        # features2_norm = F.normalize(features2, p=2, dim=1)
 
-        # Compute loss and distances
-        loss, dist = loss_fn(features1_norm, features2_norm, target)
+        # # Compute loss and distances
+        # loss, dist = loss_fn(features1_norm, features2_norm, target)
 
-        # Update weights
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        # # Update weights
+        # optimizer.zero_grad()
+        # loss.backward()
+        # optimizer.step()
 
-        # Compute accuracy and predictions
-        value, preds = accuracy_fn(dist, target)
+        # # Compute accuracy and predictions
+        # value, preds = accuracy_fn(dist, target)
 
 
 class DummyDataset(data.Dataset):
@@ -173,10 +173,10 @@ def train_model(epochs, batch_size, lr=0.01, margin=1.5, threshold=0.5):
     accuracy_fn = Accuracy(threshold)
 
     # Datasets
-    # dataset_train = AvaPairs(phase="train", nb_positives=250)
-    # dataset_train = DummyDataset(size=1000)
-    # dataset_train = LoadSamePairDataset(size=1000)
-    dataset_train = ComputeSamePairDataset(size=1000)
+    dataset_train = AvaPairs(phase="train", nb_positives=250)     # 2min06 # 39s (to cuda)
+    # dataset_train = DummyDataset(size=1000)                       # 2min06 # 9s (to cuda)
+    # dataset_train = LoadSamePairDataset(size=1000)                # 2min06 # 11s (to cuda)
+    # dataset_train = ComputeSamePairDataset(size=1000)             # 2min08 # 36s (to cuda)
 
     # Dataloaders
     dataloader_train = torch.utils.data.DataLoader(
@@ -187,10 +187,9 @@ def train_model(epochs, batch_size, lr=0.01, margin=1.5, threshold=0.5):
         pin_memory=True
     )
 
+    # Train epochs
     for epoch in range(epochs):
         print("Epoch {}/{}".format(epoch + 1, epochs))
-
-        # Train epoch
         train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn)
 
 

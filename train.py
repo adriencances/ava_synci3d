@@ -32,8 +32,13 @@ class Accuracy:
         self.threshold = threshold
 
     def __call__(self, dist, target):
-        dist = dist.cuda()
-        target = target.cuda()
+        # Device
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        dist = dist.to(device)
+        target = target.to(device)
+
+        # dist = dist.cuda()
+        # target = target.cuda()
         assert target.ndim == 1 and target.size() == dist.size()
         preds = (dist < self.threshold)
         accuracy = (preds == target).sum().item() / target.size(0)
@@ -49,9 +54,15 @@ def train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn)
     model.train()
     for batch_id, (segment1, segment2, target) in enumerate(tqdm.tqdm(dataloader_train)):
         # Pass inputs to GPU
-        segment1 = segment1.cuda()
-        segment2 = segment2.cuda()
-        target = target.cuda()
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        segment1 = segment1.to(device)
+        segment2 = segment2.to(device)
+        target = target.to(device)
+
+        # segment1 = segment1.cuda()
+        # segment2 = segment2.cuda()
+        # target = target.cuda()
 
         # Pass inputs to the model
         features1, features2 = model(segment1, segment2) # shape : bx1024
@@ -94,9 +105,14 @@ def test_epoch(dataloader_val, model, epoch, loss_fn, optimizer, accuracy_fn):
         model.eval()
         for batch_id, (segment1, segment2, target) in enumerate(tqdm.tqdm(dataloader_val)):
             # Pass inputs to GPU
-            segment1 = segment1.cuda()
-            segment2 = segment2.cuda()
-            target = target.cuda()
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            segment1 = segment1.to(device)
+            segment2 = segment2.to(device)
+            target = target.to(device)
+            
+            # segment1 = segment1.cuda()
+            # segment2 = segment2.cuda()
+            # target = target.cuda()
 
             # Pass inputs to the model
             features1, features2 = model(segment1, segment2) # shape : bx1024
@@ -131,16 +147,24 @@ def load_checkpoint_state(model, optimizer, checkpoint_file):
     return model, optimizer
 
 
-def train_model(epochs, train_data_size, batch_size, lr=0.01, margin=1.5, threshold=0.5, record=True):
+def train_model(epochs, train_data_size, batch_size, lr=0.01, margin=1.5, threshold=0.5, record=True, parallelize=False):
     # summary_file = "summaries/summary_lr{}_marg{}_thre{}_epochs{}.csv".format(lr, margin, threshold, epochs)
 
     if record:
         # Tensorboard writer
         writer = SummaryWriter("runs/run_size{}_1".format(train_data_size))
+    
+    # Device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Model
     model = SyncI3d(num_in_frames=16)
-    model.cuda()
+    # model.cuda()
+
+    # Parallelize model
+    if parallelize:
+        model = nn.DataParallel(model)
+    model.to(device)
 
     # Loss function, optimizer
     loss_fn = ContrastiveLoss(margin=margin)
@@ -239,7 +263,10 @@ if __name__ == "__main__":
     epochs = int(sys.argv[1])
     lr = float(sys.argv[2])
     train_data_size = int(sys.argv[3])
+    parallelize = bool(int(sys.argv[4]))
+    batch_size = 16 if parallelize else 8
+
     print("Nb epochs : {}".format(epochs))
     print("Learning rate : {}".format(lr))
     print("Train data size {}".format(train_data_size))
-    train_model(epochs=epochs, train_data_size=train_data_size, batch_size=8, lr=lr, record=True)
+    train_model(epochs=epochs, train_data_size=train_data_size, batch_size=batch_size, lr=lr, record=False, parallelize=parallelize)
