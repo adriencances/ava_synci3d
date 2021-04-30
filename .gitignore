@@ -4,3 +4,6 @@ pairs_tensors/*
 checkpoints/*
 essai/*
 runs/*
+MNIST/*
+train_dummy.py
+train_multi-GPU_dummy.py
