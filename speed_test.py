@@ -24,21 +24,9 @@ from dataset_aux import FrameProcessor
 from dataset import AvaPairs
 from synci3d import SyncI3d
 from contrastive_loss import ContrastiveLoss
+from accuracy import Accuracy
 
 from utils import plot_distance_distribution
-
-
-class Accuracy:
-    def __init__(self, threshold):
-        self.threshold = threshold
-
-    def __call__(self, dist, target):
-        dist = dist.cuda()
-        target = target.cuda()
-        assert target.ndim == 1 and target.size() == dist.size()
-        preds = (dist < self.threshold)
-        accuracy = (preds == target).sum().item() / target.size(0)
-        return accuracy, preds
 
 
 def train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn):

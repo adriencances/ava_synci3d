@@ -23,6 +23,7 @@ from dataset_aux import FrameProcessor
 from dataset import AvaPairs
 from synci3d import SyncI3d
 from contrastive_loss import ContrastiveLoss
+from accuracy import Accuracy
 
 from utils import plot_distance_distribution
 
@@ -49,21 +50,6 @@ args = parser.parse_args()
 
 gpu_devices = ','.join([str(id) for id in args.gpu_devices])
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu_devices
-
-
-
-class Accuracy:
-    def __init__(self, threshold):
-        self.threshold = threshold
-
-    def __call__(self, dist, target, device):
-        dist = dist.cuda(device)
-        target = target.cuda(device)
-
-        assert target.ndim == 1 and target.size() == dist.size()
-        preds = (dist < self.threshold)
-        accuracy = (preds == target).sum().item() / target.size(0)
-        return accuracy, preds
 
 
 def main():

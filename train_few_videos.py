@@ -15,7 +15,7 @@ from torch.autograd import Variable
 
 from torch.utils.tensorboard import SummaryWriter
 
-from dataset import AvaPairs
+from dataset_few_videos import AvaPairs
 from synci3d import SyncI3d
 from contrastive_loss import ContrastiveLoss
 from accuracy import Accuracy
@@ -116,7 +116,7 @@ def load_checkpoint(model, optimizer, checkpoint_file):
 def train_model(epochs, train_data_size, batch_size, lr=0.01, margin=1.5, threshold=0.5, record=True, chkpt_delay=10, chkpt_file=None):
     if record:
         # Tensorboard writer
-        writer = SummaryWriter("runs/run_size{}_1".format(train_data_size))
+        writer = SummaryWriter("runs/run_size{}_few_videos_1".format(train_data_size))
 
     # Model
     model = SyncI3d(num_in_frames=16)
@@ -201,7 +201,7 @@ def train_model(epochs, train_data_size, batch_size, lr=0.01, margin=1.5, thresh
                 'model': model.state_dict(),
                 'optimizer': optimizer.state_dict()
             }
-            chkpt_file = "checkpoints/checkpoint_size{}_lr{}_marg{}_epoch{}.pt".format(train_data_size, lr, margin, epoch)
+            chkpt_file = "checkpoints/checkpoint_size{}_few_videos_lr{}_marg{}_epoch{}.pt".format(train_data_size, lr, margin, epoch)
             torch.save(state, chkpt_file)
 
 
