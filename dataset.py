@@ -45,11 +45,12 @@ class AvaPairs(data.Dataset):
                 for line in f:
                     pair = line.strip().split(",")
                     self.positive_pairs.append(pair + [1])
-        random.shuffle(self.positive_pairs)
         
         if self.nb_positives == None:
             self.nb_positives = len(self.positive_pairs)
-        self.positive_pairs = self.positive_pairs[:self.nb_positives]
+        
+        self.positive_pairs = random.sample(self.positive_pairs, self.nb_positives)
+        random.shuffle(self.positive_pairs)
     
     def gather_negative_pairs(self):
         nb_hard_negatives = 2*self.nb_positives
@@ -69,8 +70,10 @@ class AvaPairs(data.Dataset):
                 for line in f:
                     pair = line.strip().split(",")
                     self.hard_negative_pairs.append(pair + [0])
+            
+        self.hard_negative_pairs = random.sample(self.hard_negative_pairs, nb_hard_negatives)
         random.shuffle(self.hard_negative_pairs)
-        self.hard_negative_pairs = self.hard_negative_pairs[:nb_hard_negatives]
+
         # Medium negatives
         self.medium_negative_pairs = []
         pairs_files = glob.glob("{}/{}/medium_negative/*".format(self.pairs_dir, self.phase))
@@ -79,8 +82,10 @@ class AvaPairs(data.Dataset):
                 for line in f:
                     pair = line.strip().split(",")
                     self.medium_negative_pairs.append(pair + [0])
+
+        self.medium_negative_pairs = random.sample(self.medium_negative_pairs, nb_medium_negatives)
         random.shuffle(self.medium_negative_pairs)
-        self.medium_negative_pairs = self.medium_negative_pairs[:nb_medium_negatives]
+
         # Easy negatives
         self.easy_negative_pairs = []
         pairs_files = glob.glob("{}/{}/easy_negative/*".format(self.pairs_dir, self.phase))
@@ -89,8 +94,9 @@ class AvaPairs(data.Dataset):
                 for line in f:
                     pair = line.strip().split(",")
                     self.easy_negative_pairs.append(pair + [0])
+        
+        self.easy_negative_pairs = random.sample(self.easy_negative_pairs, nb_easy_negatives)
         random.shuffle(self.easy_negative_pairs)
-        self.easy_negative_pairs = self.easy_negative_pairs[:nb_easy_negatives]
 
         self.negative_pairs = []
         self.negative_pairs += self.hard_negative_pairs
