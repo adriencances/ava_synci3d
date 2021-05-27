@@ -15,10 +15,10 @@ from torch.autograd import Variable
 
 from torch.utils.tensorboard import SummaryWriter
 
-from dataset_few_videos import AvaPairs
-from synci3d import SyncI3d
+from dataset import AvaPairs
+from synci3d_v2 import SyncI3d_v2
 from contrastive_loss import ContrastiveLoss
-from accuracy import Accuracy
+from accuracy import ContrastiveLossAccuracy
 
 
 def train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn):
@@ -35,7 +35,7 @@ def train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn)
         target = target.cuda()
 
         # Pass inputs to the model
-        features1, features2 = model(segment1, segment2) # shape : bx1024
+        features1, features2 = model(segment1, segment2) # shape : bx128
 
         # Normalize each feature vector (separately)
         features1_norm = F.normalize(features1, p=2, dim=1)
@@ -116,10 +116,10 @@ def load_checkpoint(model, optimizer, checkpoint_file):
 def train_model(epochs, train_data_size, batch_size, lr=0.01, margin=1.5, threshold=0.5, record=True, chkpt_delay=10, chkpt_file=None):
     if record:
         # Tensorboard writer
-        writer = SummaryWriter("runs/run_size{}_few_videos_1".format(train_data_size))
+        writer = SummaryWriter("runs_v2/run_size{}_1".format(train_data_size))
 
     # Model
-    model = SyncI3d(num_in_frames=16)
+    model = SyncI3d_v2(num_in_frames=16)
     model.cuda()
 
     # Loss function, optimizer
@@ -139,7 +139,7 @@ def train_model(epochs, train_data_size, batch_size, lr=0.01, margin=1.5, thresh
         start_epoch = 0
 
     # Accuracy function
-    accuracy_fn = Accuracy(threshold=threshold)
+    accuracy_fn = ContrastiveLossAccuracy(threshold=threshold)
 
     # Datasets
     val_data_size = train_data_size // 4
@@ -194,15 +194,15 @@ def train_model(epochs, train_data_size, batch_size, lr=0.01, margin=1.5, thresh
             writer.add_histogram("train_distances", np.array(train_distances), global_step=epoch)
             writer.add_histogram("val_distances", np.array(val_distances), global_step=epoch)
 
-        # Save checkpoint
-        if epoch%chkpt_delay == chkpt_delay - 1:
-            state = {
-                'epoch': epoch,
-                'model': model.state_dict(),
-                'optimizer': optimizer.state_dict()
-            }
-            chkpt_file = "checkpoints/checkpoint_size{}_few_videos_lr{}_marg{}_epoch{}.pt".format(train_data_size, lr, margin, epoch)
-            torch.save(state, chkpt_file)
+            # Save checkpoint
+            if epoch%chkpt_delay == chkpt_delay - 1:
+                state = {
+                    'epoch': epoch,
+                    'model': model.state_dict(),
+                    'optimizer': optimizer.state_dict()
+                }
+                chkpt_file = "checkpoints_v2/checkpoint_size{}_lr{}_marg{}_epoch{}.pt".format(train_data_size, lr, margin, epoch)
+                torch.save(state, chkpt_file)
 
 
 if __name__ == "__main__":

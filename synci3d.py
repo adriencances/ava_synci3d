@@ -12,17 +12,14 @@ class SyncI3d(nn.Module):
         super(SyncI3d, self).__init__()
         self.params_file = "/home/acances/Code/human_interaction_SyncI3d/params/rgb_imagenet.pt"
          
-        self.i3d_net_1 = InceptionI3d(num_in_frames=num_in_frames)
-        self.i3d_net_1.load_state_dict(torch.load(self.params_file))
-
-        self.i3d_net_2 = InceptionI3d(num_in_frames=num_in_frames)
-        self.i3d_net_2.load_state_dict(torch.load(self.params_file))
+        self.i3d_net = InceptionI3d(num_in_frames=num_in_frames)
+        self.i3d_net.load_state_dict(torch.load(self.params_file))
     
     def forward(self, input1, input2):
-        output1 = self.i3d_net_1.extract_features(input1)
-        output1 = torch.flatten(output1, start_dim=1)
+        output1 = self.i3d_net.extract_features(input1)
+        output2 = self.i3d_net.extract_features(input2)
 
-        output2 = self.i3d_net_2.extract_features(input2)
+        output1 = torch.flatten(output1, start_dim=1)
         output2 = torch.flatten(output2, start_dim=1)
         
         return output1, output2

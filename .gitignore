@@ -2,8 +2,12 @@ __pycache__/*
 AVA_random_frames/*
 pairs_tensors/*
 checkpoints/*
+checkpoints_v1/*
+checkpoints_v2/*
 essai/*
 runs/*
+runs_v1/*
+runs_v2/*
 MNIST/*
 interesting_positive_pairs/*
 histograms/*

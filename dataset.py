@@ -34,7 +34,6 @@ class AvaPairs(data.Dataset):
         self.nb_positives = nb_positives
         self.gather_positive_pairs()
         self.gather_negative_pairs()
-        self.create_data()
 
     def gather_positive_pairs(self):
         print("Gathering positive pairs")
@@ -56,11 +55,12 @@ class AvaPairs(data.Dataset):
         nb_hard_negatives = 2*self.nb_positives
         nb_medium_negatives = self.nb_positives // 2
         nb_easy_negatives = self.nb_positives // 2
+        self.one_epoch_data_size = self.nb_positives \
+            + nb_hard_negatives \
+            + nb_medium_negatives \
+            + nb_easy_negatives
 
         print("Gathering negative pairs")
-
-        # For each category (hard, medium, easy), we gather all the corresponding pairs,
-        # shuffle them, and keep only the number we need
 
         # Hard negatives
         self.hard_negative_pairs = []
@@ -70,9 +70,6 @@ class AvaPairs(data.Dataset):
                 for line in f:
                     pair = line.strip().split(",")
                     self.hard_negative_pairs.append(pair + [0])
-            
-        self.hard_negative_pairs = random.sample(self.hard_negative_pairs, nb_hard_negatives)
-        random.shuffle(self.hard_negative_pairs)
 
         # Medium negatives
         self.medium_negative_pairs = []
@@ -83,9 +80,6 @@ class AvaPairs(data.Dataset):
                     pair = line.strip().split(",")
                     self.medium_negative_pairs.append(pair + [0])
 
-        self.medium_negative_pairs = random.sample(self.medium_negative_pairs, nb_medium_negatives)
-        random.shuffle(self.medium_negative_pairs)
-
         # Easy negatives
         self.easy_negative_pairs = []
         pairs_files = glob.glob("{}/{}/easy_negative/*".format(self.pairs_dir, self.phase))
@@ -94,25 +88,30 @@ class AvaPairs(data.Dataset):
                 for line in f:
                     pair = line.strip().split(",")
                     self.easy_negative_pairs.append(pair + [0])
-        
-        self.easy_negative_pairs = random.sample(self.easy_negative_pairs, nb_easy_negatives)
-        random.shuffle(self.easy_negative_pairs)
+
+        # Make sure that the proportion of the negative pairs are correct
+        number = min(
+            len(self.hard_negative_pairs) // 2,
+            len(self.medium_negative_pairs) * 2,
+            len(self.easy_negative_pairs) * 2
+        )
 
         self.negative_pairs = []
-        self.negative_pairs += self.hard_negative_pairs
-        self.negative_pairs += self.medium_negative_pairs
-        self.negative_pairs += self.easy_negative_pairs
-    
-    def create_data(self):
-        # Concatenate positive and negative pairs, and shuffle
-        self.data = self.positive_pairs + self.negative_pairs
-        random.shuffle(self.data)
+        self.negative_pairs += random.sample(self.hard_negative_pairs, number*2)
+        self.negative_pairs += random.sample(self.medium_negative_pairs, number//2)
+        self.negative_pairs += random.sample(self.easy_negative_pairs, number//2)
 
     def __getitem__(self, index):
         "Generates one sample of data"
-        nb_pairs = len(self.data)
-        assert index < nb_pairs
-        pair = self.data[index]
+        assert index < self.one_epoch_data_size
+
+        # For positive pairs, choose among the selected positive pairs.
+        if index < self.nb_positives:
+            pair = self.positive_pairs[index]
+        # For negative pairs, randomly sample among all the negative pairs.
+        else:
+            pair = random.choice(self.negative_pairs)
+
         video_id1, shot_id1, i1, begin1, end1, video_id2, shot_id2, i2, begin2, end2, label = pair
         shot_id1, track_id1, begin1, end1 = list(map(int, [shot_id1, i1, begin1, end1]))
         shot_id2, track_id2, begin2, end2 = list(map(int, [shot_id2, i2, begin2, end2]))
@@ -121,14 +120,11 @@ class AvaPairs(data.Dataset):
         tensor1 = self.frame_processor.processed_frames(video_id1, shot_id1, track_id1, begin1, end1)
         tensor2 = self.frame_processor.processed_frames(video_id2, shot_id2, track_id2, begin2, end2)
 
-        # with open("pairs_tensors/pair_0.pkl", "rb") as f:
-        #     tensor1, tensor2, label = pickle.load(f)
-        
         return tensor1, tensor2, label
 
     def __len__(self):
         """Denotes the total number of samples"""
-        return len(self.data)
+        return self.one_epoch_data_size
 
 
 if __name__ == "__main__":
