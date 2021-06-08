@@ -131,7 +131,8 @@ class FrameProcessor:
         tracks_file = "{}/{}/{}/{:05d}_tracks.pkl".format(self.tracks_dir, self.phase, video_id, shot_id)
         with open(tracks_file, "rb") as f:
             tracks = pickle.load(f)
-        track, score = tracks[track_id]
+        # track, score = tracks[track_id]
+        track = tracks[track_id]
         return track
 
     def processed_frames(self, video_id, shot_id, track_id, begin_frame, end_frame):
