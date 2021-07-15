@@ -19,11 +19,11 @@ import argparse
 import json
 
 # from dataset import AvaPairs
-from synci3d import SyncI3d
+from synci3d import SyncI3dResNet
 from accuracy import multi_class_accuracy
 
 sys.path.insert(0, "/home/adrien/Code/Friends")
-from dataset import FriendsPairs
+from dataset_resnet import FriendsPairs
 
 
 def train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn):
@@ -36,14 +36,15 @@ def train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn)
     total_by_class = [0 for i in range(nb_classes)]
 
     model.train()
-    for batch_id, (segment1, segment2, target) in enumerate(tqdm.tqdm(dataloader_train)):
+    for batch_id, (segment1, segment2, frame, target) in enumerate(tqdm.tqdm(dataloader_train)):
         # Pass inputs to GPU
         segment1 = segment1.cuda()
         segment2 = segment2.cuda()
+        frame = frame.cuda()
         target = target.cuda()
 
         # Pass inputs to the model
-        out = model(segment1, segment2) # shape : bx2
+        out = model(segment1, segment2, frame) # shape : bx2
 
         # Compute loss
         loss = loss_fn(out, target)
@@ -90,14 +91,15 @@ def test_epoch(dataloader_val, model, epoch, loss_fn, optimizer, accuracy_fn):
 
     with torch.no_grad():
         model.eval()
-        for batch_id, (segment1, segment2, target) in enumerate(tqdm.tqdm(dataloader_val)):
+        for batch_id, (segment1, segment2, frame, target) in enumerate(tqdm.tqdm(dataloader_val)):
             # Pass inputs to GPU
             segment1 = segment1.cuda()
             segment2 = segment2.cuda()
+            frame = frame.cuda()
             target = target.cuda()
 
             # Pass inputs to the model
-            out = model(segment1, segment2) # shape : bx2
+            out = model(segment1, segment2, frame) # shape : bx2
 
             # Compute loss
             loss = loss_fn(out, target)
@@ -140,15 +142,15 @@ def train_model(args):
     config_id = abs(hash(json.dumps(vars(args), sort_keys=True)))
     if args.record:
         # File with list of configurations
-        config_file = "runs_friends/configs.txt"
+        config_file = "runs_friends/configs_resnet.txt"
         mode = "a" if os.path.isfile(config_file) else "w"
         with open(config_file, mode) as f:
             f.write(str(config_id) + "\t" + str(args) + "\n")
         # Tensorboard writer
-        writer = SummaryWriter("runs_friends/run_config_{}".format(config_id))
+        writer = SummaryWriter("runs_friends/run_config_resnet_{}".format(config_id))
 
     # Model
-    model = SyncI3d(num_in_frames=16, nb_layers=args.nb_layers, dropout_prob=args.dropout_prob)
+    model = SyncI3dResNet(num_in_frames=16, nb_layers=args.nb_layers, dropout_prob=args.dropout_prob)
     model.cuda()
 
     # Loss function, optimizer
@@ -291,7 +293,7 @@ def train_model(args):
                 'model': model.state_dict(),
                 'optimizer': optimizer.state_dict()
             }
-            chkpt_file = "checkpoints_friends/checkpoint_config_{}_epoch{}.pt".format(config_id, epoch)
+            chkpt_file = "checkpoints_friends/checkpoint_config_resnet_{}_epoch{}.pt".format(config_id, epoch)
             torch.save(state, chkpt_file)
 
 

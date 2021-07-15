@@ -23,10 +23,10 @@ class AvaPairs(data.Dataset):
         self.alpha = 0.1
 
         self.phase = phase
-        self.frames_dir = "/media/hdd/adrien/Ava_v2.2/correct_frames"
-        self.shots_dir = "/home/acances/Data/Ava_v2.2/final_shots"
-        self.tracks_dir = "/home/acances/Data/Ava_v2.2/tracks_SORT"
-        self.pairs_dir = "/home/acances/Data/Ava_v2.2/pairs16_SORT"
+        self.frames_dir = "/home/adrien/Data/Ava_v2.2/correct_frames"
+        self.shots_dir = "/home/adrien/Data/Ava_v2.2/final_shots"
+        self.tracks_dir = "/home/adrien/Data/Ava_v2.2/tracks_SORT"
+        self.pairs_dir = "/home/adrien/Data/Ava_v2.2/pairs16_SORT"
 
         self.frame_processor = FrameProcessor(self.w, self.h, self.alpha, self.phase, self.frames_dir, self.shots_dir, self.tracks_dir)
 
