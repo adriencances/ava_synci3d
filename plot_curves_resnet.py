@@ -21,16 +21,10 @@ def shorten_dictionary(d, max_epoch=8):
 
 def plot_curves(config_id):
     df = get_data_for_config(config_id)
+    dat = df.values
 
     subdir = "curves_friends/config_resnet_{}".format(config_id)
     Path(subdir).mkdir(parents=True, exist_ok=True)
-
-    tags = ([
-        "training_loss",
-        "training_accuracy",
-        "validation_accuracy",
-    ])
-    dat = df.values
 
     nb_epochs = len([1 for i in range(len(dat)) if dat[i, 1] == "training_loss"])
     print(config_id, "\t", nb_epochs)

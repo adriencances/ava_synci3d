@@ -10,7 +10,7 @@ from i3d import InceptionI3d
 
 
 class SyncI3d(nn.Module):
-    def __init__(self, num_in_frames=64, in_features=2048, nb_classes=2, nb_layers=3, dropout_prob=0):
+    def __init__(self, num_in_frames=64, in_features=2048, nb_classes=1, nb_layers=2, dropout_prob=0):
         super(SyncI3d, self).__init__()
         self.params_file = "/home/adrien/Code/human_interaction_SyncI3d/params/rgb_imagenet.pt"
          
@@ -45,7 +45,7 @@ class SyncI3d(nn.Module):
 
 
 class SyncI3dResNet(nn.Module):
-    def __init__(self, num_in_frames=64, in_features=2048*2, nb_classes=2, nb_layers=3, dropout_prob=0):
+    def __init__(self, num_in_frames=64, in_features=2048*2, nb_classes=1, nb_layers=2, dropout_prob=0):
         super(SyncI3dResNet, self).__init__()
         self.params_file = "/home/adrien/Code/human_interaction_SyncI3d/params/rgb_imagenet.pt"
          

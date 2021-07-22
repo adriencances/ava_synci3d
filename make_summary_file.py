@@ -7,6 +7,21 @@ import matplotlib.pyplot as plt
 import glob
 
 
+summary_file = "summary_runs_friends_synci3d.csv"
+
+
+config_ids = ([
+    "8874451247213503487",
+    "2913721369671654269",
+    "7989562130473339989",
+    "899180313416084012",
+    "8744896203684980137",
+    "8944460950739749069",
+    "resnet_8894521375383121754",
+    "resnet_8698596633345978445"
+])
+
+
 def get_data_for_config(config_id):
     file_name = "data_runs_friends/data_config_{}".format(config_id)
     df = pickle.load(open(file_name, "rb"))
@@ -19,63 +34,52 @@ def shorten_dictionary(d, max_epoch=8):
             del d[k]
 
 
-def plot_curves(config_id):
+def gather_data(config_id):
     df = get_data_for_config(config_id)
-
-    subdir = "curves_friends/config_{}".format(config_id)
-    Path(subdir).mkdir(parents=True, exist_ok=True)
-
-    tags = ([
-        "training_loss",
-        "training_accuracy",
-        "validation_accuracy",
-    ])
     dat = df.values
 
-    nb_epochs = len([1 for i in range(len(dat)) if dat[i, 1] == "training_loss"])
-    print(config_id, "\t", nb_epochs)
-    for cat in ["training", "validation", "test"]:
+    categories = ["training", "validation", "test"]
+
+    loss = {}
+    pos_accuracy = {}
+    neg_accuracy = {}
+    mean_accuracy = {}
+    for cat in categories:
         losses = dict([(dat[i, -2], dat[i, -1]) for i in range(len(dat)) if dat[i, 1] == "{}_loss".format(cat)])
         pos_accs = dict([(dat[i, -2], dat[i, -1]) for i in range(len(dat)) if dat[i, 0] == "{}_class_accuracies_positive".format(cat)])
         neg_accs = dict([(dat[i, -2], dat[i, -1]) for i in range(len(dat)) if dat[i, 0] == "{}_class_accuracies_negative".format(cat)])
         mean_accs = dict([(dat[i, -2], dat[i, -1]) for i in range(len(dat)) if dat[i, 1] == "{}_accuracy".format(cat)])
-        
+
         shorten_dictionary(losses)
         shorten_dictionary(pos_accs)
         shorten_dictionary(neg_accs)
         shorten_dictionary(mean_accs)
-    
-        plt.figure()
-        plt.title("{} loss".format(cat.title()))
-        plt.hlines(0, min(list(losses.keys())), max(list(losses.keys())), colors="lightgray")
-        plt.plot(list(losses.keys()), list(losses.values()))
-        plt.savefig("{}/{}_loss.png".format(subdir, cat))
-        plt.close()
 
-        plt.figure()
-        plt.title("{} class accuracies".format(cat.title()))
-        plt.hlines([0, 1], min(list(pos_accs.keys())), max(list(pos_accs.keys())), colors="lightgray")
-        plt.plot(list(pos_accs.keys()), list(pos_accs.values()))
-        plt.plot(list(neg_accs.keys()), list(neg_accs.values()))
-        plt.legend(["positive", "negative"], loc="lower left")
-        plt.ylim(-0.1, 1.1)
-        plt.savefig("{}/{}_class_accs.png".format(subdir, cat))
-        plt.close()
+        relevant_epoch = 8 if cat == "training" else max(mean_accs, key=lambda k: mean_accs[k])
+        
+        loss[cat] = round(losses[relevant_epoch], 3)
+        pos_accuracy[cat] = round(pos_accs[relevant_epoch] * 100, 1)
+        neg_accuracy[cat] = round(neg_accs[relevant_epoch] * 100, 1)
+        mean_accuracy[cat] = round(mean_accs[relevant_epoch] * 100, 1)
 
-        plt.figure()
-        plt.title("{} mean accuracy".format(cat.title()))
-        plt.hlines([0, 1], min(list(pos_accs.keys())), max(list(pos_accs.keys())), colors="lightgray")
-        plt.plot(list(mean_accs.keys()), list(mean_accs.values()))
-        plt.ylim(-0.1, 1.1)
-        plt.savefig("{}/{}_mean_accs.png".format(subdir, cat))
-        plt.close()
+    return loss, mean_accuracy, pos_accuracy, neg_accuracy
 
 
-def plot_all_curves():
-    config_ids = [int(e.split("_")[-1]) for e in glob.glob("data_runs_friends/data_config_[1234567890]*")]
+def make_summary_file():
+    datas = []
+    categories = ["training", "validation", "test"]
     for config_id in config_ids:
-        plot_curves(config_id)
+        datas.append((config_id, gather_data(config_id)))
+    with open(summary_file, "w") as f:
+        names = (["config id",
+                    "train loss", "train mean acc", "train pos acc", "train neg acc",
+                    "val loss", "val mean acc", "val pos acc", "val neg acc",
+                    "test loss", "test mean acc", "test pos acc", "test neg acc"])
+        f.write(",".join(names) + "\n")
+        for config_id, data in datas:
+            entries = [config_id] + [values[cat] for cat in categories for values in data]
+            f.write(",".join(map(str, entries)) + "\n")
 
 
 if __name__ == "__main__":
-    plot_all_curves()
+    make_summary_file()

@@ -23,3 +23,12 @@ def multi_class_accuracy(probs, target, device=None):
     preds = probs.argmax(dim=1)
     accuracy = (preds == target).sum().item() / target.size(0)
     return accuracy, preds
+
+
+def two_class_simple_accuracy(out, target, device=None):
+    out = out.cuda(device)
+    target = target.cuda(device)
+    assert target.ndim == 1 and target.size(0) == out.size(0)
+    preds = out > 0
+    accuracy = (preds.squeeze() == target).sum().item() / target.size(0)
+    return accuracy, preds

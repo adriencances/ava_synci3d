@@ -20,7 +20,7 @@ import json
 
 # from dataset import AvaPairs
 from synci3d import SyncI3dResNet
-from accuracy import multi_class_accuracy
+from accuracy import two_class_simple_accuracy
 
 sys.path.insert(0, "/home/adrien/Code/Friends")
 from dataset_resnet import FriendsPairs
@@ -47,7 +47,7 @@ def train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn)
         out = model(segment1, segment2, frame) # shape : bx2
 
         # Compute loss
-        loss = loss_fn(out, target)
+        loss = loss_fn(out.squeeze(), target.float())
         train_loss += loss.item()
 
         # Update weights
@@ -57,7 +57,7 @@ def train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn)
 
         # Compute probabilities and accuracy
         probs = F.softmax(out, dim=1)
-        value, preds = accuracy_fn(probs, target)
+        value, preds = accuracy_fn(out, target)
         train_acc += value
 
         # For accuracy by class
@@ -102,12 +102,12 @@ def test_epoch(dataloader_val, model, epoch, loss_fn, optimizer, accuracy_fn):
             out = model(segment1, segment2, frame) # shape : bx2
 
             # Compute loss
-            loss = loss_fn(out, target)
+            loss = loss_fn(out.squeeze(), target.float())
             val_loss += loss.item()
 
             # Compute probabilities and accuracy
             probs = F.softmax(out, dim=1)
-            value, preds = accuracy_fn(probs, target)
+            value, preds = accuracy_fn(out, target)
             val_acc += value
 
             # For accuracy by class
@@ -139,6 +139,17 @@ def load_checkpoint(model, optimizer, checkpoint_file):
 
 
 def train_model(args):
+    if args.option == "2":
+        args.nb_layers = 2
+        args.do_chkpts = True
+        args.chkpt_delay = 1
+    if args.option == "3":
+        args.nb_layers = 1
+        args.dropout_prob = 0
+    
+    print(args)
+    print(abs(hash(json.dumps(vars(args), sort_keys=True))))
+
     config_id = abs(hash(json.dumps(vars(args), sort_keys=True)))
     if args.record:
         # File with list of configurations
@@ -154,7 +165,11 @@ def train_model(args):
     model.cuda()
 
     # Loss function, optimizer
-    loss_fn = nn.CrossEntropyLoss()
+    if args.option in ["2", "3"]:
+        loss_fn = nn.BCEWithLogitsLoss()
+    else:
+        loss_fn = nn.CrossEntropyLoss()
+
     optimizer = optim.SGD(
         model.parameters(),
         lr=args.lr,
@@ -170,7 +185,7 @@ def train_model(args):
         start_epoch = 0
 
     # Accuracy function
-    accuracy_fn = multi_class_accuracy
+    accuracy_fn = two_class_simple_accuracy
 
     # Datasets
     if args.train_data_size is not None:
@@ -271,18 +286,18 @@ def train_model(args):
         if args.record:
             # Write losses and accuracies to Tensorboard
             writer.add_scalar("training_loss", train_loss, global_step=epoch)
-            writer.add_scalar("training_accuracy", train_mean_acc, global_step=epoch)
+            writer.add_scalar("training_accuracy", train_acc, global_step=epoch)
             writer.add_scalars("training_class_accuracies", \
                 dict([(label, train_accs_by_class[i]) for i, label in enumerate(labels)]), global_step=epoch)
 
             writer.add_scalar("validation_loss", val_loss, global_step=epoch)
-            writer.add_scalar("validation_accuracy", val_mean_acc, global_step=epoch)
+            writer.add_scalar("validation_accuracy", val_acc, global_step=epoch)
             writer.add_scalars("validation_class_accuracies", \
                 dict([(label, val_accs_by_class[i]) for i, label in enumerate(labels)]), global_step=epoch)
             
             if epoch % args.test_delay == 0:
                 writer.add_scalar("test_loss", test_loss, global_step=epoch)
-                writer.add_scalar("test_accuracy", test_mean_acc, global_step=epoch)
+                writer.add_scalar("test_accuracy", test_acc, global_step=epoch)
                 writer.add_scalars("test_class_accuracies", \
                     dict([(label, test_accs_by_class[i]) for i, label in enumerate(labels)]), global_step=epoch)
     
@@ -326,7 +341,7 @@ def get_parser():
                         default=16,
                         help='batch size (default: 16)')
     parser.add_argument('-l', '--nb_layers', type=int,
-                        default=3,
+                        default=2,
                         help='number of layers in the MLP of SyncI3d (default: 3)')
     parser.add_argument('-do', '--dropout_prob', type=float,
                         default=0,
@@ -346,6 +361,9 @@ def get_parser():
     parser.add_argument('-chpf', '--chkpt_file', type=str,
                         default=None,
                         help='checkpoint file (default: None)')
+    parser.add_argument('-opt', '--option', type=str,
+                        default=1,
+                        help='option for the model architecture (see Vicky\'s message')
     return parser
 
 
