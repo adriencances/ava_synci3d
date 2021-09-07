@@ -32,3 +32,21 @@ def two_class_simple_accuracy(out, target, device=None):
     preds = out > 0
     accuracy = (preds.squeeze() == target).sum().item() / target.size(0)
     return accuracy, preds
+
+
+class CosineLossAccuracy:
+    def __init__(self, pred_margin, eps=1e-08):
+        self.pred_margin = pred_margin
+        self.eps = eps
+        self.cosine_similarity = nn.CosineSimilarity(dim=1, eps=self.eps)
+
+    def __call__(self, out, target, device=None):
+        x1, x2 = out
+        x1 = x1.cuda(device)
+        x2 = x2.cuda(device)
+
+        sims = self.cosine_similarity(x1, x2)
+
+        preds = (sims > self.pred_margin)
+        accuracy = (preds.squeeze() == target).sum().item() / target.size(0)
+        return accuracy, preds

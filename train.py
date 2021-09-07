@@ -19,14 +19,14 @@ import argparse
 import json
 
 # from dataset import AvaPairs
-from synci3d import SyncI3d
-from accuracy import two_class_simple_accuracy
+from synci3d import SyncI3d, TwinI3d
+from accuracy import two_class_simple_accuracy, CosineLossAccuracy
 
 sys.path.insert(0, "/home/adrien/Code/Friends")
 from dataset import FriendsPairs
 
 
-def train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn):
+def train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn, option_1_used):
     nb_batches = 0
     train_loss = 0
     train_acc = 0
@@ -46,7 +46,11 @@ def train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn)
         out = model(segment1, segment2) # shape : bx2
 
         # Compute loss
-        loss = loss_fn(out.squeeze(), target.float())
+        if option_1_used:
+            target_adapted = 2*target - 1
+            loss = loss_fn(*out, target_adapted.float())
+        else:
+            loss = loss_fn(out.squeeze(), target.float())
         train_loss += loss.item()
 
         # Update weights
@@ -55,7 +59,6 @@ def train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn)
         optimizer.step()
 
         # Compute probabilities and accuracy
-        probs = F.softmax(out, dim=1)
         value, preds = accuracy_fn(out, target)
         train_acc += value
 
@@ -79,7 +82,7 @@ def train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn)
     return train_loss, train_acc, train_mean_acc, accuracies_by_class
 
 
-def test_epoch(dataloader_val, model, epoch, loss_fn, optimizer, accuracy_fn):
+def test_epoch(dataloader_val, model, epoch, loss_fn, optimizer, accuracy_fn, option_1_used):
     nb_batches = 0
     val_loss = 0
     val_acc = 0
@@ -100,11 +103,14 @@ def test_epoch(dataloader_val, model, epoch, loss_fn, optimizer, accuracy_fn):
             out = model(segment1, segment2) # shape : bx2
 
             # Compute loss
-            loss = loss_fn(out.squeeze(), target.float())
+            if option_1_used:
+                target_adapted = 2*target - 1
+                loss = loss_fn(*out, target_adapted.float())
+            else:
+                loss = loss_fn(out.squeeze(), target.float())
             val_loss += loss.item()
 
             # Compute probabilities and accuracy
-            probs = F.softmax(out, dim=1)
             value, preds = accuracy_fn(out, target)
             val_acc += value
 
@@ -144,9 +150,6 @@ def train_model(args):
     if args.option == "3":
         args.nb_layers = 1
         args.dropout_prob = 0
-    
-    print(args)
-    print(abs(hash(json.dumps(vars(args), sort_keys=True))))
 
     config_id = abs(hash(json.dumps(vars(args), sort_keys=True)))
     if args.record:
@@ -159,14 +162,20 @@ def train_model(args):
         writer = SummaryWriter("runs_friends/run_config_{}".format(config_id))
 
     # Model
-    model = SyncI3d(num_in_frames=16, nb_layers=args.nb_layers, dropout_prob=args.dropout_prob)
+    if args.option == "1":
+        model = TwinI3d(num_in_frames=16)
+    else:
+        model = SyncI3d(num_in_frames=16, nb_layers=args.nb_layers, dropout_prob=args.dropout_prob)
     model.cuda()
 
     # Loss function, optimizer
-    if args.option in ["2", "3"]:
-        loss_fn = nn.BCEWithLogitsLoss()
+    if args.option == "1":
+        loss_fn = nn.CosineEmbeddingLoss(margin=args.cosine_loss_margin)
     else:
-        loss_fn = nn.CrossEntropyLoss()
+        loss_fn = nn.BCEWithLogitsLoss()
+
+    # Boolean indicating if option 1 is used
+    option_1_used = (args.option == "1")
 
     optimizer = optim.SGD(
         model.parameters(),
@@ -183,7 +192,10 @@ def train_model(args):
         start_epoch = 0
 
     # Accuracy function
-    accuracy_fn = two_class_simple_accuracy
+    if option_1_used:
+        accuracy_fn = CosineLossAccuracy(pred_margin=args.prediction_margin)
+    else:
+        accuracy_fn = two_class_simple_accuracy
 
     # Datasets
     if args.train_data_size is not None:
@@ -253,7 +265,7 @@ def train_model(args):
 
         # Train epoch
         train_loss, train_acc, train_mean_acc, train_accs_by_class \
-            = train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn)
+            = train_epoch(dataloader_train, model, epoch, loss_fn, optimizer, accuracy_fn, option_1_used)
         train_losses.append(train_loss)
         train_accs.append(train_acc)
         train_mean_accs.append(train_mean_acc)
@@ -261,7 +273,7 @@ def train_model(args):
 
         # Val epoch
         val_loss, val_acc, val_mean_acc, val_accs_by_class \
-            = test_epoch(dataloader_val, model, epoch, loss_fn, optimizer, accuracy_fn)
+            = test_epoch(dataloader_val, model, epoch, loss_fn, optimizer, accuracy_fn, option_1_used)
         val_losses.append(val_loss)
         val_accs.append(val_acc)
         val_mean_accs.append(val_mean_acc)
@@ -270,7 +282,7 @@ def train_model(args):
         if epoch % args.test_delay == 0:
             # Test epoch
             test_loss, test_acc, test_mean_acc, test_accs_by_class \
-                = test_epoch(dataloader_test, model, epoch, loss_fn, optimizer, accuracy_fn)
+                = test_epoch(dataloader_test, model, epoch, loss_fn, optimizer, accuracy_fn, option_1_used)
             test_losses.append(test_loss)
             test_accs.append(test_acc)
             test_mean_accs.append(test_mean_acc)
@@ -352,7 +364,7 @@ def get_parser():
                         help='dropout probability (default: 0)')
     parser.add_argument('-lr', '--learning_rate', type=float, dest='lr',
                         default=0.1,
-                        help='learning rate (default: 0.1')
+                        help='learning rate (default: 0.1)')
     parser.add_argument('-rec', '--record', type=str2bool,
                         default=True,
                         help='record in TensorBoard or not (default: True)')
@@ -368,6 +380,14 @@ def get_parser():
     parser.add_argument('-opt', '--option', type=str,
                         default=1,
                         help='option for the model architecture (see Vicky\'s message')
+    parser.add_argument('-cosmarg', '--cosine_loss_margin', type=float,
+                        default=0.3,
+                        help='margin to use for the CosineEmbeddingLoss in option 1 \
+                        (default: 0.3)')
+    parser.add_argument('-predmarg', '--prediction_margin', type=float,
+                        default=0.3,
+                        help='margin to use for prediction in option 1 \
+                        (default: 0.6)')
     return parser
 
 

@@ -9,6 +9,27 @@ from torchvision import models
 from i3d import InceptionI3d
 
 
+class TwinI3d(nn.Module):
+    def __init__(self, num_in_frames=64):
+        super(TwinI3d, self).__init__()
+        self.params_file = "/home/adrien/Code/human_interaction_SyncI3d/params/rgb_imagenet.pt"
+         
+        self.i3d_net = InceptionI3d(num_in_frames=num_in_frames)
+        self.i3d_net.load_state_dict(torch.load(self.params_file))
+
+    def forward(self, input1, input2):
+        features1 = self.i3d_net.extract_features(input1)
+        features2 = self.i3d_net.extract_features(input2)
+
+        features1 = torch.flatten(features1, start_dim=1)
+        features2 = torch.flatten(features2, start_dim=1)
+
+        features1 = F.normalize(features1, p=2, dim=1)
+        features2 = F.normalize(features2, p=2, dim=1)
+
+        return features1, features2
+
+
 class SyncI3d(nn.Module):
     def __init__(self, num_in_frames=64, in_features=2048, nb_classes=1, nb_layers=2, dropout_prob=0):
         super(SyncI3d, self).__init__()
@@ -111,4 +132,3 @@ if __name__ == "__main__":
 
     output = model(input1, input2, input3)
     print(output.shape)
-

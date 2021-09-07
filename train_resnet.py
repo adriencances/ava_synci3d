@@ -146,9 +146,6 @@ def train_model(args):
     if args.option == "3":
         args.nb_layers = 1
         args.dropout_prob = 0
-    
-    print(args)
-    print(abs(hash(json.dumps(vars(args), sort_keys=True))))
 
     config_id = abs(hash(json.dumps(vars(args), sort_keys=True)))
     if args.record:
@@ -348,7 +345,7 @@ def get_parser():
                         help='dropout probability (default: 0)')
     parser.add_argument('-lr', '--learning_rate', type=float, dest='lr',
                         default=0.1,
-                        help='learning rate (default: 0.1')
+                        help='learning rate (default: 0.1)')
     parser.add_argument('-rec', '--record', type=str2bool,
                         default=True,
                         help='record in TensorBoard or not (default: True)')
